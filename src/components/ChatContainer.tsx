@@ -37,12 +37,11 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  return (
-    <div className="flex flex-col h-full min-h-0 w-full max-w-4xl mx-auto">
+  return (    <div className="flex flex-col h-[calc(100vh-200px)] w-full max-w-4xl mx-auto">
       <div
         ref={chatContainerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-4 glass-effect rounded-t-2xl"
+        className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 glass-effect rounded-t-2xl"
       >
         {messages.map((message, index) => (
           <ChatBubble
