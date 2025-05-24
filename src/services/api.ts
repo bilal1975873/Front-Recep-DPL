@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Visitor, ChatState } from '../types';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://dpl-recep-back-production.up.railway.app';
 
 const api = axios.create({
   baseURL: API_URL,
