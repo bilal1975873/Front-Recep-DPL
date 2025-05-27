@@ -15,6 +15,7 @@ const INITIAL_STATE: ChatState = {
   currentStep: 'visitor_type',
   visitorInfo: {},
   isLoading: false,
+  showConfirmation: false,
 };
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
   const resetChat = () => {
     setState(INITIAL_STATE);
   };
+
 
   const handleSend = async (message: string) => {
     // If in completed state, reset the chat for new visitor
@@ -49,52 +51,24 @@ function App() {
         state.visitorInfo
       );
       
-      // Check if registration is completed
-      if (visitorInfo?.registration_completed) {
-        // Add final message and update state
-        setState(prev => ({
-          ...prev,
-          messages: [
-            ...prev.messages,
-            { type: 'bot', content: response, timestamp: new Date() },
-            { 
-              type: 'bot', 
-              content: 'Type ok to start a new registration.', 
-              timestamp: new Date() 
-            },
-          ],
-          currentStep: 'complete',
-          visitorInfo: { ...prev.visitorInfo, ...visitorInfo },
-          isLoading: false,
-        }));
-        return;
-      }
-
-      // Normal message flow
+      // Check if we're at the confirmation step
+      const isConfirmationStep = nextStep === 'confirmation';
+      
+      // Update state with new message and visitor info
       setState(prev => ({
         ...prev,
         messages: [
           ...prev.messages,
           { type: 'bot', content: response, timestamp: new Date() },
         ],
-        currentStep: nextStep || prev.currentStep,
+        currentStep: nextStep,
         visitorInfo: { ...prev.visitorInfo, ...visitorInfo },
+        showConfirmation: isConfirmationStep,
         isLoading: false,
       }));
     } catch (error) {
       console.error('Error processing message:', error);
-      setState(prev => ({
-        ...prev,
-        messages: [
-          ...prev.messages,
-          { 
-            type: 'bot', 
-            content: 'Sorry, I encountered an error. Please try again.', 
-            timestamp: new Date() 
-          },
-        ],
-        isLoading: false,
-      }));
+      setState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
