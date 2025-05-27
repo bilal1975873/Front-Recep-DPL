@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChatContainer } from './components/ChatContainer';
 import { visitorService } from './services/api';
 import type { ChatState } from './types';
@@ -20,11 +20,57 @@ const INITIAL_STATE: ChatState = {
 
 function App() {
   const [state, setState] = useState<ChatState>(INITIAL_STATE);
+  const [resetTimer, setResetTimer] = useState<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimer) {
+        window.clearTimeout(resetTimer);
+      }
+    };
+  }, [resetTimer]);
 
   const resetChat = () => {
+    if (resetTimer) {
+      window.clearTimeout(resetTimer);
+    }
     setState(INITIAL_STATE);
   };
 
+  const handleConfirmation = async (isConfirmed: boolean) => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      const { response, nextStep, visitorInfo } = await visitorService.processMessage(
+        isConfirmed ? 'confirm' : 'edit',
+        state.currentStep,
+        state.visitorInfo
+      );
+
+      setState(prev => ({
+        ...prev,
+        messages: [
+          ...prev.messages,
+          { type: 'bot', content: response, timestamp: new Date() },
+        ],
+        currentStep: nextStep,
+        visitorInfo,
+        showConfirmation: false,
+        isLoading: false,
+      }));
+
+      // If registration is complete, set a timer to reset after 5 seconds
+      if (nextStep === 'complete' || visitorInfo.registration_completed) {
+        const timer = window.setTimeout(() => {
+          resetChat();
+        }, 5000);
+        setResetTimer(timer);
+      }
+    } catch (error) {
+      console.error('Error processing confirmation:', error);
+      setState(prev => ({ ...prev, isLoading: false }));
+    }
+  };
 
   const handleSend = async (message: string) => {
     // If in completed state, reset the chat for new visitor
@@ -52,7 +98,7 @@ function App() {
       );
       
       // Check if we're at the confirmation step
-      const isConfirmationStep = nextStep === 'confirmation';
+      const showConfirmation = nextStep === 'confirmation' || response.includes('confirm the information');
       
       // Update state with new message and visitor info
       setState(prev => ({
@@ -63,9 +109,17 @@ function App() {
         ],
         currentStep: nextStep,
         visitorInfo: { ...prev.visitorInfo, ...visitorInfo },
-        showConfirmation: isConfirmationStep,
+        showConfirmation,
         isLoading: false,
       }));
+
+      // If registration is complete, set a timer to reset after 5 seconds
+      if (nextStep === 'complete' || visitorInfo.registration_completed) {
+        const timer = window.setTimeout(() => {
+          resetChat();
+        }, 5000);
+        setResetTimer(timer);
+      }
     } catch (error) {
       console.error('Error processing message:', error);
       setState(prev => ({ ...prev, isLoading: false }));
@@ -93,11 +147,50 @@ function App() {
 
         {/* Chat interface */}
         <div className="flex-1 flex flex-col">
-          <ChatContainer
-            messages={state.messages}
-            isLoading={state.isLoading}
-            onSend={handleSend}
-          />
+          <div className="flex-1 overflow-y-auto mb-4 custom-scrollbar">
+            <ChatContainer 
+              messages={state.messages} 
+              isLoading={state.isLoading}
+              onSend={handleSend}
+            />
+          </div>
+
+          {/* Confirmation buttons or chat input */}
+          <div className="mt-auto">
+            {state.showConfirmation ? (
+              <div className="flex justify-center gap-4 mb-4">
+                <button
+                  onClick={() => handleConfirmation(true)}
+                  disabled={state.isLoading}
+                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  Confirm
+                </button>
+                <button
+                  onClick={() => handleConfirmation(false)}
+                  disabled={state.isLoading}
+                  className="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  Edit
+                </button>
+              </div>
+            ) : (
+              <div className="w-full">
+                <input
+                  type="text"
+                  placeholder={state.isLoading ? "Please wait..." : "Type your message..."}
+                  disabled={state.isLoading}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                      handleSend((e.target as HTMLInputElement).value.trim());
+                      (e.target as HTMLInputElement).value = '';
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:border-red-500"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Footer bar */}
