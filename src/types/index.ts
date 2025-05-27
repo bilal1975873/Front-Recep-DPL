@@ -67,4 +67,5 @@ export interface ChatState {
     };
   };
   isLoading: boolean;
+  showConfirmation: boolean;
 }
