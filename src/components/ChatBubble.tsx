@@ -21,6 +21,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '',
   // Handle employee selection differently
   const isEmployeeSelection = lines[0]?.toLowerCase().includes('found') && lines[0]?.toLowerCase().includes('match');
   
+  // Check if this is a completion message
+  const isCompletionMessage = isBot && message.content.toLowerCase().includes('registration is complete');
+  
   // Convert employee names into numbered options internally
   let counter = 1;
   const employeeNames: Option[] = isEmployeeSelection ? 
@@ -47,7 +50,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '',
   
   // Check if this is a confirmation message
   const isConfirmation = isBot && prompt.toLowerCase().includes('please review') && prompt.toLowerCase().includes('confirm');
-  const showButtons = isBot && (options.length > 0 || isConfirmation || isEmployeeSelection);
+  const showButtons = isBot && (options.length > 0 || isConfirmation || isEmployeeSelection || isCompletionMessage);
 
   return (
     <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} ${className}`}>
@@ -98,6 +101,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '',
                     </button>
                   ))}
                 </>
+              ) : isCompletionMessage ? (
+                <button
+                  onClick={() => onSelect?.('ok')}
+                  className="w-full text-left px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400"
+                >
+                  Start New Registration
+                </button>
               ) : (
                 options.map((option, index) => {
                   const match = option.match(/^(\d+)\./);
