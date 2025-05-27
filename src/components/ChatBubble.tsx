@@ -11,11 +11,23 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '',
   // Extract numbered options and main prompt
   const lines = message.content.split('\n');
   const options = lines.filter(line => line.match(/^\d+\./));
-  const prompt = lines.filter(line => !line.match(/^\d+\./) && line.trim() !== '').join(' ');
+  
+  // Handle employee selection differently
+  const isEmployeeSelection = lines[0]?.toLowerCase().includes('found') && lines[0]?.toLowerCase().includes('match');
+  const employeeNames = isEmployeeSelection ? 
+    lines.filter(line => !line.toLowerCase().includes('found') && !line.toLowerCase().includes('none of these') && line.trim())
+    : [];
+  const nonEmployeeLines = isEmployeeSelection ? 
+    lines.filter(line => line.toLowerCase().includes('none of these')) 
+    : [];
+  
+  const prompt = isEmployeeSelection ?
+    lines[0] :
+    lines.filter(line => !line.match(/^\d+\./) && line.trim() !== '').join(' ');
   
   // Check if this is a confirmation message
   const isConfirmation = isBot && prompt.toLowerCase().includes('please review') && prompt.toLowerCase().includes('confirm');
-  const showButtons = isBot && (options.length > 0 || isConfirmation);
+  const showButtons = isBot && (options.length > 0 || isConfirmation || isEmployeeSelection);
 
   return (
     <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} ${className}`}>
@@ -29,8 +41,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '',
         {/* Show prompt as heading if there are options, else show full message */}
         {showButtons ? (
           <>
-            <div className="font-semibold text-base md:text-lg mb-2">{prompt}</div>            <div className="flex flex-col gap-3 mt-2">
-              {isConfirmation ? (
+            <div className="font-semibold text-base md:text-lg mb-2">{prompt}</div>            <div className="flex flex-col gap-3 mt-2">              {isConfirmation ? (
                 <div className="flex gap-3">
                   <button
                     onClick={() => onSelect?.('confirm')}
@@ -45,6 +56,27 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '',
                     Edit
                   </button>
                 </div>
+              ) : isEmployeeSelection ? (
+                <>
+                  {employeeNames.map((name, index) => (
+                    <button
+                      key={index}
+                      onClick={() => onSelect?.(name.trim())}
+                      className="w-full text-left px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                      {name.trim()}
+                    </button>
+                  ))}
+                  {nonEmployeeLines.map((line, index) => (
+                    <button
+                      key={`none-${index}`}
+                      onClick={() => onSelect?.(line.trim())}
+                      className="w-full text-left px-5 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    >
+                      {line.trim()}
+                    </button>
+                  ))}
+                </>
               ) : (
                 options.map((option, index) => {
                   // Extract the number (e.g., '2') from '2. I am a vendor'
