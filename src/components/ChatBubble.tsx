@@ -7,18 +7,38 @@ interface ChatBubbleProps {
   onSelect?: (text: string) => void;
 }
 
-export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '', onSelect }) => {  const isBot = message.type === 'bot';
+interface Option {
+  display: string;
+  value: string;
+}
+
+export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '', onSelect }) => {
+  const isBot = message.type === 'bot';
   // Extract numbered options and main prompt
   const lines = message.content.split('\n');
   const options = lines.filter(line => line.match(/^\d+\./));
   
   // Handle employee selection differently
   const isEmployeeSelection = lines[0]?.toLowerCase().includes('found') && lines[0]?.toLowerCase().includes('match');
-  const employeeNames = isEmployeeSelection ? 
-    lines.filter(line => !line.toLowerCase().includes('found') && !line.toLowerCase().includes('none of these') && line.trim())
+  
+  // Convert employee names into numbered options internally
+  let counter = 1;
+  const employeeNames: Option[] = isEmployeeSelection ? 
+    lines.filter(line => 
+      !line.toLowerCase().includes('found') && 
+      !line.toLowerCase().includes('none of these') && 
+      line.trim()
+    ).map(name => ({
+      display: name.trim(),
+      value: String(counter++)
+    }))
     : [];
-  const nonEmployeeLines = isEmployeeSelection ? 
-    lines.filter(line => line.toLowerCase().includes('none of these')) 
+  
+  const nonEmployeeLines: Option[] = isEmployeeSelection ? 
+    [{
+      display: "None of these / Enter a different name",
+      value: "0"
+    }]
     : [];
   
   const prompt = isEmployeeSelection ?
@@ -38,10 +58,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '',
             : 'bg-gradient-to-br from-red-600 to-red-700 text-white ml-auto glow-effect'
         }`}
       >
-        {/* Show prompt as heading if there are options, else show full message */}
         {showButtons ? (
           <>
-            <div className="font-semibold text-base md:text-lg mb-2">{prompt}</div>            <div className="flex flex-col gap-3 mt-2">              {isConfirmation ? (
+            <div className="font-semibold text-base md:text-lg mb-2">{prompt}</div>
+            <div className="flex flex-col gap-3 mt-2">
+              {isConfirmation ? (
                 <div className="flex gap-3">
                   <button
                     onClick={() => onSelect?.('confirm')}
@@ -58,28 +79,27 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, className = '',
                 </div>
               ) : isEmployeeSelection ? (
                 <>
-                  {employeeNames.map((name, index) => (
+                  {employeeNames.map((option) => (
                     <button
-                      key={index}
-                      onClick={() => onSelect?.(name.trim())}
-                      className="w-full text-left px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      key={option.value}
+                      onClick={() => onSelect?.(option.value)}
+                      className="w-full text-left px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400"
                     >
-                      {name.trim()}
+                      {option.display}
                     </button>
                   ))}
-                  {nonEmployeeLines.map((line, index) => (
+                  {nonEmployeeLines.map((option) => (
                     <button
-                      key={`none-${index}`}
-                      onClick={() => onSelect?.(line.trim())}
+                      key={option.value}
+                      onClick={() => onSelect?.(option.value)}
                       className="w-full text-left px-5 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
                     >
-                      {line.trim()}
+                      {option.display}
                     </button>
                   ))}
                 </>
               ) : (
                 options.map((option, index) => {
-                  // Extract the number (e.g., '2') from '2. I am a vendor'
                   const match = option.match(/^(\d+)\./);
                   const valueToSend = match ? match[1] : option;
                   return (
