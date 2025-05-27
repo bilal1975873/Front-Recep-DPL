@@ -57,11 +57,6 @@ function App() {
           messages: [
             ...prev.messages,
             { type: 'bot', content: response, timestamp: new Date() },
-            { 
-              type: 'bot', 
-              content: 'Type ok to start a new registration.', 
-              timestamp: new Date() 
-            },
           ],
           currentStep: 'complete',
           visitorInfo: { ...prev.visitorInfo, ...visitorInfo },
